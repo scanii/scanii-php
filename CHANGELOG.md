@@ -1,6 +1,6 @@
 # Changelog
 
-## v3.0.0 — Rebrand and rewrite
+## v6.0.0 — Rebrand and rewrite
 
 First release under the new Packagist coordinate `scanii/scanii-php`.
 The PHP namespace stays `Scanii\…`; the migration is the install line.

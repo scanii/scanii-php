@@ -64,7 +64,7 @@ Test credentials: key `key`, secret `secret`, endpoint `http://localhost:4000`.
 
 ```diff
 -"uvasoftware/scanii-php": "^5.0"
-+"scanii/scanii-php": "^3.0"
++"scanii/scanii-php": "^6.0"
 ```
 
 The PHP namespace is unchanged (`Scanii\…`). Other notable changes:
