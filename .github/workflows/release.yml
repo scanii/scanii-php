@@ -1,0 +1,23 @@
+name: Release
+
+# Packagist auto-publishes from a webhook configured in Packagist admin: when
+# Rafael creates a GitHub Release in the UI (or via `gh release create`),
+# Packagist picks up the new tag automatically.
+#
+# This workflow exists only to acknowledge the release event for parity with
+# the other Scanii SDKs and to leave a green check on each release tag. It
+# does NOT create the release, run tests, or interact with Packagist directly.
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  acknowledge:
+    name: Acknowledge release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print release info
+        run: |
+          echo "Released ${{ github.event.release.tag_name }} of scanii/scanii-php"
+          echo "Packagist auto-publishes via webhook on tag push — no further action needed here."
