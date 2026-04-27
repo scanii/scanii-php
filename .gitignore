@@ -43,3 +43,6 @@ atlassian-ide-plugin.xml
 
 vendor/
 composer.phar
+composer.lock
+.phpunit.cache/
+.phpunit.result.cache
