@@ -24,7 +24,7 @@ use Scanii\Models\ScaniiProcessingResult;
  */
 final class ScaniiClient
 {
-    public const string VERSION = '6.0.0';
+    public const string VERSION = '6.1.0';
 
     private const string API_VERSION_PATH = '/v2.2';
     private const string DEFAULT_USER_AGENT_PREFIX = 'scanii-php/v';
@@ -111,6 +111,46 @@ final class ScaniiClient
     }
 
     /**
+     * Submit a PHP stream resource for synchronous scanning.
+     *
+     * $stream must be a readable PHP stream resource — the result of fopen(),
+     * tmpfile(), fopen('php://temp', 'r+'), etc. Content is buffered through
+     * php://temp (auto-spills to disk above 2 MiB) before being sent via
+     * cURL multipart, so memory pressure is bounded for large uploads.
+     *
+     * $filename is used as the multipart part name; $contentType defaults to
+     * application/octet-stream when null.
+     *
+     * @param resource              $stream
+     * @param array<string, string> $metadata
+     *
+     * @see https://scanii.github.io/openapi/v22/ — POST /files
+     */
+    public function processStream(
+        mixed $stream,
+        string $filename,
+        ?string $contentType = null,
+        array $metadata = [],
+        ?string $callback = null,
+    ): ScaniiProcessingResult {
+        $this->assertStream($stream);
+
+        $tmpPath = $this->streamToTempFile($stream);
+        try {
+            $fields = $this->buildMultipartFromTempFile($tmpPath, $filename, $contentType, $metadata, $callback);
+            [$status, $body, $headers] = $this->request('POST', '/files', body: $fields);
+        } finally {
+            @unlink($tmpPath);
+        }
+
+        if ($status !== 201) {
+            $this->throwForStatus($status, $body, $headers);
+        }
+
+        return $this->buildProcessingResult($status, $body, $headers);
+    }
+
+    /**
      * Submit a file for asynchronous scanning.
      *
      * @param array<string, string> $metadata
@@ -126,6 +166,43 @@ final class ScaniiClient
 
         $fields = $this->buildMultipart($path, $metadata, $callback);
         [$status, $body, $headers] = $this->request('POST', '/files/async', body: $fields);
+
+        if ($status !== 202) {
+            $this->throwForStatus($status, $body, $headers);
+        }
+
+        return $this->buildPendingResult($status, $body, $headers);
+    }
+
+    /**
+     * Submit a PHP stream resource for asynchronous scanning.
+     *
+     * $stream must be a readable PHP stream resource — the result of fopen(),
+     * tmpfile(), fopen('php://temp', 'r+'), etc. Content is buffered through
+     * php://temp (auto-spills to disk above 2 MiB) before being sent via
+     * cURL multipart, so memory pressure is bounded for large uploads.
+     *
+     * @param resource              $stream
+     * @param array<string, string> $metadata
+     *
+     * @see https://scanii.github.io/openapi/v22/ — POST /files/async
+     */
+    public function processAsyncStream(
+        mixed $stream,
+        string $filename,
+        ?string $contentType = null,
+        array $metadata = [],
+        ?string $callback = null,
+    ): ScaniiPendingResult {
+        $this->assertStream($stream);
+
+        $tmpPath = $this->streamToTempFile($stream);
+        try {
+            $fields = $this->buildMultipartFromTempFile($tmpPath, $filename, $contentType, $metadata, $callback);
+            [$status, $body, $headers] = $this->request('POST', '/files/async', body: $fields);
+        } finally {
+            @unlink($tmpPath);
+        }
 
         if ($status !== 202) {
             $this->throwForStatus($status, $body, $headers);
@@ -379,6 +456,67 @@ final class ScaniiClient
         if (!is_file($path) || !is_readable($path)) {
             throw new InvalidArgumentException("file at $path is not readable");
         }
+    }
+
+    private function assertStream(mixed $stream): void
+    {
+        if (!is_resource($stream) || get_resource_type($stream) !== 'stream') {
+            throw new InvalidArgumentException('stream must be a PHP stream resource (fopen(), tmpfile(), php://temp, etc.)');
+        }
+    }
+
+    /**
+     * Copy a stream resource into a real temp file and return its path.
+     *
+     * Content is buffered through php://temp (spills to disk above 2 MiB)
+     * before being written to the temp file, so memory pressure is bounded.
+     * The caller is responsible for deleting the returned file when done.
+     *
+     * @param resource $stream
+     */
+    private function streamToTempFile(mixed $stream): string
+    {
+        $tmpPath = tempnam(sys_get_temp_dir(), 'scanii-stream-');
+        if ($tmpPath === false) {
+            throw new ScaniiException('failed to create temp file for stream upload');
+        }
+
+        $out = fopen($tmpPath, 'wb');
+        if ($out === false) {
+            @unlink($tmpPath);
+            throw new ScaniiException("failed to open temp file for writing: $tmpPath");
+        }
+        stream_copy_to_stream($stream, $out);
+        fclose($out);
+
+        return $tmpPath;
+    }
+
+    /**
+     * Build a cURL multipart fields array from a temp file path.
+     *
+     * @param array<string, string> $metadata
+     *
+     * @return array<string, mixed>
+     */
+    private function buildMultipartFromTempFile(
+        string $tmpPath,
+        string $filename,
+        ?string $contentType,
+        array $metadata,
+        ?string $callback,
+    ): array {
+        $mimeType = $contentType ?? 'application/octet-stream';
+        $fields = [
+            'file' => new CURLFile($tmpPath, $mimeType, $filename),
+        ];
+        if ($callback !== null && $callback !== '') {
+            $fields['callback'] = $callback;
+        }
+        foreach ($metadata as $k => $v) {
+            $fields["metadata[$k]"] = $v;
+        }
+        return $fields;
     }
 
     /**

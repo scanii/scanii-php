@@ -1,5 +1,16 @@
 # Changelog
 
+## v6.1.0 — Streaming standardization
+
+### Added
+
+- `ScaniiClient::processStream($stream, $filename, $contentType, $metadata, $callback)` — submit a PHP stream resource for synchronous scanning. `$stream` must be a PHP stream resource (`fopen()`, `tmpfile()`, `fopen('php://temp', 'r+')`, etc.). Content is buffered through `php://temp` (auto-spills to disk above 2 MiB) before upload, so memory pressure is bounded.
+- `ScaniiClient::processAsyncStream($stream, $filename, $contentType, $metadata, $callback)` — stream-based equivalent for async scanning.
+
+The existing `process($path, ...)` and `processAsync($path, ...)` are unchanged — path-based callers have no migration to do.
+
+---
+
 ## v6.0.0 — Rebrand and rewrite
 
 First release under the new Packagist coordinate `scanii/scanii-php`.

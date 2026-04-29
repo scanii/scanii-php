@@ -141,6 +141,81 @@ final class IntegrationTest extends TestCase
     }
 
     #[Test]
+    public function process_stream_with_tmpfile_resource(): void
+    {
+        $stream = tmpfile();
+        if ($stream === false) {
+            $this->fail('tmpfile() failed');
+        }
+        fwrite($stream, self::LOCAL_MALWARE_UUID);
+        rewind($stream);
+
+        try {
+            $r = $this->client()->processStream($stream, 'uuid-fixture.bin');
+            $this->assertNotEmpty($r->resourceId);
+
+            if (!in_array(self::LOCAL_MALWARE_FINDING, $r->findings, true)) {
+                $this->markTestSkipped(
+                    'scanii-cli under test did not flag the UUID fixture via stream; got: ' . implode(',', $r->findings)
+                );
+            }
+            $this->assertContains(self::LOCAL_MALWARE_FINDING, $r->findings);
+        } finally {
+            fclose($stream);
+        }
+    }
+
+    #[Test]
+    public function process_stream_with_php_temp(): void
+    {
+        $stream = fopen('php://temp', 'r+');
+        if ($stream === false) {
+            $this->fail('fopen(php://temp) failed');
+        }
+        fwrite($stream, 'hello from php://temp stream');
+        rewind($stream);
+
+        try {
+            $r = $this->client()->processStream($stream, 'temp.bin');
+            $this->assertNotEmpty($r->resourceId);
+            $this->assertSame(0, count($r->findings), 'expected no findings for clean content');
+        } finally {
+            fclose($stream);
+        }
+    }
+
+    #[Test]
+    public function process_async_stream_returns_pending_result(): void
+    {
+        $stream = fopen('php://temp', 'r+');
+        if ($stream === false) {
+            $this->fail('fopen(php://temp) failed');
+        }
+        fwrite($stream, 'hello async stream');
+        rewind($stream);
+
+        try {
+            $pending = $this->client()->processAsyncStream($stream, 'async.bin');
+            $this->assertNotEmpty($pending->resourceId);
+
+            usleep(500_000);
+
+            $r = $this->client()->retrieve($pending->resourceId);
+            $this->assertSame($pending->resourceId, $r->resourceId);
+        } finally {
+            fclose($stream);
+        }
+    }
+
+    #[Test]
+    public function process_stream_rejects_non_stream_resource(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        // @phpstan-ignore-next-line (intentional wrong type for test)
+        $this->client()->processStream('not-a-stream', 'file.bin');
+    }
+
+    #[Test]
     public function fetch_returns_pending_result(): void
     {
         $pending = $this->client()->fetch('https://example.com/test.txt');

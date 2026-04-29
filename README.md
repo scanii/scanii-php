@@ -24,11 +24,28 @@ Requires PHP 8.4 or newer.
 use Scanii\ScaniiClient;
 
 $client = ScaniiClient::create('your-api-key', 'your-api-secret');
+
+// Scan a file from disk:
 $result = $client->process('/path/to/file');
 echo implode(', ', $result->findings);
 ```
 
 `ScaniiClient::create` returns a thread-friendly client that you can reuse across requests; the constructor performs no I/O.
+
+### Scanning from a stream
+
+Pass any PHP stream resource — `fopen()`, `tmpfile()`, `php://temp`, etc.:
+
+```php
+// From a temp file / in-memory stream:
+$stream = fopen('php://temp', 'r+');
+fwrite($stream, $content);
+rewind($stream);
+
+$result = $client->processStream($stream, 'upload.bin');
+echo implode(', ', $result->findings);
+fclose($stream);
+```
 
 ## Regional endpoints
 
