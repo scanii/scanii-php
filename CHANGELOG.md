@@ -1,5 +1,33 @@
 # Changelog
 
+## [6.2.0] — v2.2 surface
+
+### Added
+
+- `ScaniiClient::retrieveTrace(string $id): ?ScaniiTraceResult` — retrieves the
+  ordered processing event trace for a scan via `GET /files/{id}/trace`. Returns
+  `null` on 404 (no trace for that id). v2.2 preview surface; API shape may
+  shift before marked stable.
+- `ScaniiClient::processFromUrl(string $location, ?string $callback, ?array $metadata): ScaniiProcessingResult` —
+  submits a URL for synchronous scanning via `POST /files` with `location` as a
+  multipart/form-data field. Distinct from `fetch()`, which submits to
+  `/files/fetch` for asynchronous server-side fetching. `$location` must be a
+  string URL. v2.2 preview surface.
+- `Scanii\Models\ScaniiTraceResult` — new result class with `resourceId`,
+  `events` (`list<ScaniiTraceEvent>`), and the inherited `ScaniiResult` header
+  fields.
+- `Scanii\Models\ScaniiTraceEvent` — new model with `?string $timestamp` and
+  `string $message`.
+
+### Deprecated
+
+- `ScaniiProcessingResult::$error` — the server never populates this field on
+  successful responses; errors arrive as `ScaniiException` subclasses on non-2xx
+  HTTP responses. The field is retained for backwards compatibility. Will be
+  removed in a future major version.
+
+---
+
 ## v6.1.0 — Streaming standardization
 
 ### Added

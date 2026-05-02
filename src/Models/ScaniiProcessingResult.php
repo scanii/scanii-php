@@ -26,6 +26,9 @@ final class ScaniiProcessingResult extends ScaniiResult
         public readonly ?string $checksum,
         public readonly ?string $creationDate,
         public readonly array $metadata,
+        /**
+         * @deprecated 6.2.0 Errors arrive as ScaniiException subclasses on non-2xx responses; this field is never populated on success. Will be removed in a future major version.
+         */
         public readonly ?string $error = null,
         ?string $requestId = null,
         ?string $hostId = null,
