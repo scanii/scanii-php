@@ -7,6 +7,8 @@ namespace Scanii\Tests;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Scanii\Models\ScaniiTraceEvent;
+use Scanii\Models\ScaniiTraceResult;
 use Scanii\ScaniiAuthException;
 use Scanii\ScaniiClient;
 
@@ -213,6 +215,50 @@ final class IntegrationTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         // @phpstan-ignore-next-line (intentional wrong type for test)
         $this->client()->processStream('not-a-stream', 'file.bin');
+    }
+
+    // -- retrieveTrace (v2.2 preview) ----------------------------------------
+
+    #[Test]
+    public function retrieve_trace_returns_non_empty_events_for_known_id(): void
+    {
+        $path = $this->tempFile(self::LOCAL_MALWARE_UUID);
+        try {
+            $result = $this->client()->process($path);
+            $trace = $this->client()->retrieveTrace($result->resourceId);
+
+            $this->assertNotNull($trace, 'retrieveTrace must return a ScaniiTraceResult for a known id');
+            $this->assertInstanceOf(ScaniiTraceResult::class, $trace);
+            $this->assertNotEmpty($trace->events, 'events array must be non-empty for a known processing id');
+            foreach ($trace->events as $event) {
+                $this->assertInstanceOf(ScaniiTraceEvent::class, $event);
+            }
+        } finally {
+            @unlink($path);
+        }
+    }
+
+    #[Test]
+    public function retrieve_trace_returns_null_for_unknown_id(): void
+    {
+        $result = $this->client()->retrieveTrace('does-not-exist-trace-php');
+        $this->assertNull($result);
+    }
+
+    // -- processFromUrl (v2.2 preview) ---------------------------------------
+
+    #[Test]
+    public function process_from_url_returns_result_with_eicar_finding(): void
+    {
+        $url = self::CLI_TARGET . '/static/eicar.txt';
+        $result = $this->client()->processFromUrl($url);
+
+        $this->assertNotNull($result);
+        $this->assertContains(
+            'content.malicious.eicar-test-signature',
+            $result->findings,
+            'expected EICAR finding; got: ' . implode(', ', $result->findings),
+        );
     }
 
     #[Test]

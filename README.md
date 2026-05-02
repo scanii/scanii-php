@@ -47,6 +47,26 @@ echo implode(', ', $result->findings);
 fclose($stream);
 ```
 
+## API
+
+| Method | REST | Returns |
+|---|---|---|
+| `process($path, $metadata, $callback)` | `POST /files` | `ScaniiProcessingResult` |
+| `processStream($stream, $filename, $contentType, $metadata, $callback)` | `POST /files` | `ScaniiProcessingResult` |
+| `processAsync($path, $metadata, $callback)` | `POST /files/async` | `ScaniiPendingResult` |
+| `processAsyncStream($stream, $filename, $contentType, $metadata, $callback)` | `POST /files/async` | `ScaniiPendingResult` |
+| `processFromUrl($location, $callback, $metadata)` | `POST /files` | `ScaniiProcessingResult` (v2.2 preview) |
+| `fetch($location, $metadata, $callback)` | `POST /files/fetch` | `ScaniiPendingResult` |
+| `retrieve($id)` | `GET /files/{id}` | `ScaniiProcessingResult` |
+| `retrieveTrace($id)` | `GET /files/{id}/trace` | `?ScaniiTraceResult` (v2.2 preview) |
+| `ping()` | `GET /ping` | `bool` |
+| `createAuthToken($timeoutSeconds)` | `POST /auth/tokens` | `ScaniiAuthToken` |
+| `retrieveAuthToken($id)` | `GET /auth/tokens/{id}` | `ScaniiAuthToken` |
+| `deleteAuthToken($id)` | `DELETE /auth/tokens/{id}` | `void` |
+| `retrieveAccountInfo()` | `GET /account.json` | `ScaniiAccountInfo` |
+
+Full API reference: <https://scanii.github.io/openapi/v22/>.
+
 ## Regional endpoints
 
 | Constant | Endpoint |

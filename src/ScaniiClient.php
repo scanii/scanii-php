@@ -12,6 +12,8 @@ use Scanii\Models\ScaniiAccountInfoUser;
 use Scanii\Models\ScaniiAuthToken;
 use Scanii\Models\ScaniiPendingResult;
 use Scanii\Models\ScaniiProcessingResult;
+use Scanii\Models\ScaniiTraceEvent;
+use Scanii\Models\ScaniiTraceResult;
 
 /**
  * Thread-friendly client for the Scanii content processing API.
@@ -266,6 +268,69 @@ final class ScaniiClient
     }
 
     /**
+     * Retrieve the ordered processing event trace for a scan by id.
+     *
+     * Returns null when no trace exists for the given id (HTTP 404).
+     *
+     * This is a v2.2 preview surface; the API shape may shift before it is
+     * marked stable.
+     *
+     * @see https://scanii.github.io/openapi/v22/ — GET /files/{id}/trace
+     */
+    public function retrieveTrace(string $id): ?ScaniiTraceResult
+    {
+        if ($id === '') {
+            throw new InvalidArgumentException('id must not be empty');
+        }
+
+        [$status, $body, $headers] = $this->request('GET', '/files/' . rawurlencode($id) . '/trace');
+
+        if ($status === 404) {
+            return null;
+        }
+
+        if ($status !== 200) {
+            $this->throwForStatus($status, $body, $headers);
+        }
+
+        return $this->buildTraceResult($status, $body, $headers);
+    }
+
+    /**
+     * Submit a remote URL for synchronous scanning.
+     *
+     * $location must be a string URL. The URL is sent as a multipart/form-data
+     * field to POST /files; the Scanii server fetches and scans it
+     * synchronously. This is distinct from fetch(), which submits to
+     * POST /files/fetch for asynchronous server-side fetching.
+     *
+     * This is a v2.2 preview surface; the API shape may shift before it is
+     * marked stable.
+     *
+     * @param array<string, string>|null $metadata
+     *
+     * @see https://scanii.github.io/openapi/v22/ — POST /files
+     */
+    public function processFromUrl(
+        string $location,
+        ?string $callback = null,
+        ?array $metadata = null,
+    ): ScaniiProcessingResult {
+        if ($location === '') {
+            throw new InvalidArgumentException('location must not be empty');
+        }
+
+        $fields = $this->buildUrlMultipart($location, $metadata ?? [], $callback);
+        [$status, $body, $headers] = $this->request('POST', '/files', body: $fields);
+
+        if ($status !== 201) {
+            $this->throwForStatus($status, $body, $headers);
+        }
+
+        return $this->buildProcessingResult($status, $body, $headers);
+    }
+
+    /**
      * Verify that the configured credentials reach the API.
      *
      * @see https://scanii.github.io/openapi/v22/ — GET /ping
@@ -451,6 +516,28 @@ final class ScaniiClient
         return $fields;
     }
 
+    /**
+     * Build a cURL multipart fields array for processFromUrl (text fields only,
+     * no file part). When passed as CURLOPT_POSTFIELDS, cURL sends the request
+     * as multipart/form-data — the cli rejects urlencoded bodies on POST /files
+     * with MethodNotAllowed.
+     *
+     * @param array<string, string> $metadata
+     *
+     * @return array<string, string>
+     */
+    private function buildUrlMultipart(string $location, array $metadata, ?string $callback): array
+    {
+        $fields = ['location' => $location];
+        if ($callback !== null && $callback !== '') {
+            $fields['callback'] = $callback;
+        }
+        foreach ($metadata as $k => $v) {
+            $fields["metadata[$k]"] = $v;
+        }
+        return $fields;
+    }
+
     private function assertReadable(string $path): void
     {
         if (!is_file($path) || !is_readable($path)) {
@@ -613,6 +700,33 @@ final class ScaniiClient
             statusCode: $status,
             rawResponse: $body,
             resourceId: (string) ($json['id'] ?? ''),
+            requestId: $requestId,
+            hostId: $hostId,
+            resourceLocation: $location,
+        );
+    }
+
+    /**
+     * @param array<string, list<string>> $headers
+     */
+    private function buildTraceResult(int $status, string $body, array $headers): ScaniiTraceResult
+    {
+        $json = $this->decodeJson($body);
+        [$requestId, $hostId, $location] = $this->commonMetadata($headers);
+
+        $events = [];
+        foreach (($json['events'] ?? []) as $e) {
+            $events[] = new ScaniiTraceEvent(
+                timestamp: isset($e['timestamp']) ? (string) $e['timestamp'] : null,
+                message: (string) ($e['message'] ?? ''),
+            );
+        }
+
+        return new ScaniiTraceResult(
+            statusCode: $status,
+            rawResponse: $body,
+            resourceId: (string) ($json['id'] ?? ''),
+            events: $events,
             requestId: $requestId,
             hostId: $hostId,
             resourceLocation: $location,
