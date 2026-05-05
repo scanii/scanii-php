@@ -12,6 +12,14 @@ namespace Scanii;
  */
 final class ScaniiTarget
 {
+    /**
+     * Latency-routed endpoint. Routes to the nearest region automatically,
+     * but does not guarantee which region processes your data.
+     *
+     * @deprecated Use an explicit regional constant for data residency compliance:
+     *   {@see US1}, {@see EU1}, {@see EU2}, {@see AP1}, {@see AP2}, {@see CA1}.
+     *   Will be removed in a future major version.
+     */
     public const string AUTO = 'https://api.scanii.com';
     public const string US1 = 'https://api-us1.scanii.com';
     public const string EU1 = 'https://api-eu1.scanii.com';

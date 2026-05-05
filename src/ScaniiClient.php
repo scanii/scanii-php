@@ -26,7 +26,7 @@ use Scanii\Models\ScaniiTraceResult;
  */
 final class ScaniiClient
 {
-    public const string VERSION = '6.1.0';
+    public const string VERSION = '6.3.0';
 
     private const string API_VERSION_PATH = '/v2.2';
     private const string DEFAULT_USER_AGENT_PREFIX = 'scanii-php/v';
@@ -64,6 +64,12 @@ final class ScaniiClient
 
     /**
      * Build a client with API key + secret credentials.
+     *
+     * @param string $target Regional endpoint. Defaults to {@see ScaniiTarget::AUTO}.
+     *   @deprecated Omitting $target (or passing ScaniiTarget::AUTO) uses latency-based
+     *     routing and does not guarantee regional data placement. Pass an explicit regional
+     *     constant (ScaniiTarget::US1, ScaniiTarget::EU1, etc.) for data residency compliance.
+     *     Will be removed in a future major version.
      */
     public static function create(
         string $key,
@@ -74,17 +80,43 @@ final class ScaniiClient
         if ($secret === '') {
             throw new InvalidArgumentException('secret must not be empty; use createFromToken() for token-based auth');
         }
+        if ($target === ScaniiTarget::AUTO) {
+            trigger_error(
+                '[scanii] DEPRECATION: No explicit target passed to ScaniiClient::create(); ' .
+                'defaulting to ScaniiTarget::AUTO (https://api.scanii.com). ' .
+                'This does not guarantee regional data placement. ' .
+                'Pass ScaniiTarget::US1 (or another regional constant) for explicit data residency control. ' .
+                'ScaniiTarget::AUTO will be removed in a future major version.',
+                E_USER_DEPRECATED,
+            );
+        }
         return new self($key, $secret, $target, $userAgent);
     }
 
     /**
      * Build a client that authenticates with a previously minted auth token.
+     *
+     * @param string $target Regional endpoint. Defaults to {@see ScaniiTarget::AUTO}.
+     *   @deprecated Omitting $target (or passing ScaniiTarget::AUTO) uses latency-based
+     *     routing and does not guarantee regional data placement. Pass an explicit regional
+     *     constant (ScaniiTarget::US1, ScaniiTarget::EU1, etc.) for data residency compliance.
+     *     Will be removed in a future major version.
      */
     public static function createFromToken(
         ScaniiAuthToken $token,
         string $target = ScaniiTarget::AUTO,
         string $userAgent = '',
     ): self {
+        if ($target === ScaniiTarget::AUTO) {
+            trigger_error(
+                '[scanii] DEPRECATION: No explicit target passed to ScaniiClient::createFromToken(); ' .
+                'defaulting to ScaniiTarget::AUTO (https://api.scanii.com). ' .
+                'This does not guarantee regional data placement. ' .
+                'Pass ScaniiTarget::US1 (or another regional constant) for explicit data residency control. ' .
+                'ScaniiTarget::AUTO will be removed in a future major version.',
+                E_USER_DEPRECATED,
+            );
+        }
         return new self($token->resourceId, '', $target, $userAgent);
     }
 
