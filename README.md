@@ -22,8 +22,9 @@ Requires PHP 8.4 or newer.
 
 ```php
 use Scanii\ScaniiClient;
+use Scanii\ScaniiTarget;
 
-$client = ScaniiClient::create('your-api-key', 'your-api-secret');
+$client = ScaniiClient::create('your-api-key', 'your-api-secret', ScaniiTarget::US1);
 
 // Scan a file from disk:
 $result = $client->process('/path/to/file');
@@ -71,13 +72,13 @@ Full API reference: <https://scanii.github.io/openapi/v22/>.
 
 | Constant | Endpoint |
 |---|---|
-| `ScaniiTarget::AUTO` | `https://api.scanii.com` |
 | `ScaniiTarget::US1` | `https://api-us1.scanii.com` |
 | `ScaniiTarget::EU1` | `https://api-eu1.scanii.com` |
 | `ScaniiTarget::EU2` | `https://api-eu2.scanii.com` |
 | `ScaniiTarget::AP1` | `https://api-ap1.scanii.com` |
 | `ScaniiTarget::AP2` | `https://api-ap2.scanii.com` |
 | `ScaniiTarget::CA1` | `https://api-ca1.scanii.com` |
+| ~~`ScaniiTarget::AUTO`~~ | ~~`https://api.scanii.com`~~ — **deprecated**, does not guarantee regional data placement |
 
 Pass any string URL for a custom or local endpoint:
 
