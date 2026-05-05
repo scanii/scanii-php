@@ -1,5 +1,19 @@
 # Changelog
 
+## [6.3.0] — deprecate AUTO endpoint
+
+### Deprecated
+
+- `ScaniiTarget::AUTO` — latency-based routing does not guarantee which region processes your
+  data. Use an explicit regional constant (`ScaniiTarget::US1`, `ScaniiTarget::EU1`, etc.)
+  for data residency compliance. Will be removed in a future major version.
+- Calling `ScaniiClient::create()` or `ScaniiClient::createFromToken()` without an explicit
+  `$target` (or with `ScaniiTarget::AUTO`) now emits an `E_USER_DEPRECATED` notice.
+
+### Fixed
+
+- `ScaniiClient::VERSION` constant corrected from `6.1.0` to `6.3.0` (was stale since 6.2.0).
+
 ## [6.2.0] — v2.2 surface
 
 ### Added
