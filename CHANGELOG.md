@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [6.4.1] — 2026-11-21
+
 ### Changed
 
 - Dropped the "v2.2 preview" designation from `retrieveTrace` and `processFromUrl`.
