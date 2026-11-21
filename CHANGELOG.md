@@ -68,7 +68,7 @@
 
 ---
 
-## v6.1.0 — Streaming standardization
+## [6.1.0] — Streaming standardization
 
 ### Added
 
@@ -79,7 +79,7 @@ The existing `process($path, ...)` and `processAsync($path, ...)` are unchanged 
 
 ---
 
-## v6.0.0 — Rebrand and rewrite
+## [6.0.0] — Rebrand and rewrite
 
 First release under the new Packagist coordinate `scanii/scanii-php`.
 The PHP namespace stays `Scanii\…`; the migration is the install line.
